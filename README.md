@@ -187,3 +187,9 @@ This project is open source and available under the MIT License.
 ## Support
 
 For issues or questions, please create an issue in the repository.
+
+# Django Weather App 🌤️
+
+[![GitHub](https://img.shields.io/badge/GitHub-View%20Code-blue)](https://github.com/YOUR-USERNAME/django-weather-app)
+[![Django](https://img.shields.io/badge/Django-4.2-green)](https://www.djangoproject.com/)
+[![Python](https://img.shields.io/badge/Python-3.8%2B-blue)](https://python.org/)
