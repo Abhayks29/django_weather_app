@@ -1,12 +1,17 @@
 import os
 from pathlib import Path
-import dj_database_url
+
+try:
+    import dj_database_url
+    HAS_DJ_DATABASE_URL = True
+except ImportError:
+    HAS_DJ_DATABASE_URL = False
 
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 SECRET_KEY = os.getenv('SECRET_KEY', 'your-secret-key-change-in-production')
 
-DEBUG = os.getenv('DEBUG', 'False') == 'True'
+DEBUG = os.getenv('DEBUG', 'True') == 'True'
 
 ALLOWED_HOSTS = ['*']  # Change to your domain after deployment
 
@@ -52,13 +57,21 @@ TEMPLATES = [
 
 WSGI_APPLICATION = 'weatherproject.wsgi.application'
 
-DATABASES = {
-    'default': dj_database_url.config(
-        default='sqlite:///db.sqlite3',
-        conn_max_age=600,
-        conn_health_checks=True,
-    )
-}
+# Database configuration - use PostgreSQL in production, SQLite locally
+if HAS_DJ_DATABASE_URL and os.getenv('DATABASE_URL'):
+    DATABASES = {
+        'default': dj_database_url.config(
+            conn_max_age=600,
+            conn_health_checks=True,
+        )
+    }
+else:
+    DATABASES = {
+        'default': {
+            'ENGINE': 'django.db.backends.sqlite3',
+            'NAME': BASE_DIR / 'db.sqlite3',
+        }
+    }
 
 AUTH_PASSWORD_VALIDATORS = [
     {
