@@ -6,7 +6,7 @@ import requests
 from django.conf import settings
 from .models import WeatherData
 from .serializers import WeatherDataSerializer
-import json
+from collections import defaultdict
 
 class WeatherAPIView(APIView):
     def get_weather_from_api(self, city):
@@ -48,6 +48,40 @@ class WeatherAPIView(APIView):
             print(f"❌ Unexpected Error: {e}")
             return None
 
+    def get_forecast_from_api(self, city):
+        try:
+            api_key = settings.WEATHER_API_KEY
+            if api_key == 'your-openweathermap-api-key' or not api_key:
+                return None
+
+            url = f"https://api.openweathermap.org/data/2.5/forecast?q={city}&appid={api_key}&units=metric"
+            response = requests.get(url, timeout=5)
+
+            if response.status_code != 200:
+                return None
+
+            data = response.json()
+            daily = defaultdict(list)
+            for item in data['list']:
+                date = item['dt_txt'].split(' ')[0]
+                daily[date].append(item)
+
+            forecast = []
+            for date, items in list(daily.items())[:5]:
+                temps = [i['main']['temp'] for i in items]
+                descriptions = [i['weather'][0]['main'] for i in items]
+                forecast.append({
+                    'date': date,
+                    'temp_min': round(min(temps)),
+                    'temp_max': round(max(temps)),
+                    'description': max(set(descriptions), key=descriptions.count),
+                })
+
+            return forecast
+        except Exception as e:
+            print(f"❌ Forecast Error: {e}")
+            return None
+
 class WeatherViewSet(viewsets.ModelViewSet):
     queryset = WeatherData.objects.all()
     serializer_class = WeatherDataSerializer
@@ -80,6 +114,19 @@ class WeatherViewSet(viewsets.ModelViewSet):
                 status=status.HTTP_404_NOT_FOUND
             )
     
+    @action(detail=False, methods=['get'])
+    def get_forecast(self, request):
+        city = request.query_params.get('city')
+        if not city:
+            return Response({'error': 'City parameter is required'}, status=status.HTTP_400_BAD_REQUEST)
+
+        weather_api = WeatherAPIView()
+        forecast = weather_api.get_forecast_from_api(city)
+
+        if forecast:
+            return Response(forecast, status=status.HTTP_200_OK)
+        return Response({'error': f'Forecast for {city} not found'}, status=status.HTTP_404_NOT_FOUND)
+
     @action(detail=False, methods=['get'])
     def search_history(self, request):
         """Get weather search history"""

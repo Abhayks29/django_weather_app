@@ -276,6 +276,64 @@
             padding: 20px;
             font-size: 14px;
         }
+
+        .forecast-section {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 2px solid #f0f0f0;
+        }
+
+        .forecast-section h3 {
+            color: #333;
+            font-size: 16px;
+            margin-bottom: 15px;
+        }
+
+        .forecast-cards {
+            display: grid;
+            grid-template-columns: repeat(5, 1fr);
+            gap: 8px;
+        }
+
+        .forecast-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 12px 6px;
+            text-align: center;
+        }
+
+        .forecast-day {
+            font-size: 11px;
+            font-weight: 700;
+            color: #666;
+            text-transform: uppercase;
+            margin-bottom: 6px;
+        }
+
+        .forecast-emoji {
+            font-size: 24px;
+            margin-bottom: 6px;
+        }
+
+        .forecast-desc {
+            font-size: 10px;
+            color: #888;
+            margin-bottom: 6px;
+            text-transform: capitalize;
+        }
+
+        .forecast-temps {
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .forecast-high {
+            color: #e67e22;
+        }
+
+        .forecast-low {
+            color: #667eea;
+        }
     </style>
 </head>
 <body>
@@ -342,6 +400,11 @@
                 </div>
             </div>
 
+            <div class="forecast-section" id="forecastSection" style="display: none;">
+                <h3>5-Day Forecast</h3>
+                <div class="forecast-cards" id="forecastCards"></div>
+            </div>
+
             <div class="history-section" id="historySection" style="display: none;">
                 <h3>Recent Searches</h3>
                 <div class="history-list" id="historyList">
@@ -384,6 +447,56 @@
             return `${hours}:${minutes}`;
         }
 
+        const weatherEmoji = {
+            'Clear': '☀️',
+            'Clouds': '☁️',
+            'Rain': '🌧️',
+            'Drizzle': '🌦️',
+            'Thunderstorm': '⛈️',
+            'Snow': '❄️',
+            'Mist': '🌫️',
+            'Fog': '🌫️',
+            'Haze': '🌫️',
+        };
+
+        function getDayLabel(dateStr, index) {
+            if (index === 0) return 'Today';
+            if (index === 1) return 'Tomorrow';
+            const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+            return days[new Date(dateStr).getDay()];
+        }
+
+        function displayForecast(data) {
+            const cards = document.getElementById('forecastCards');
+            cards.innerHTML = '';
+            data.forEach((day, index) => {
+                const emoji = weatherEmoji[day.description] || '🌡️';
+                const card = document.createElement('div');
+                card.className = 'forecast-card';
+                card.innerHTML = `
+                    <div class="forecast-day">${getDayLabel(day.date, index)}</div>
+                    <div class="forecast-emoji">${emoji}</div>
+                    <div class="forecast-desc">${day.description}</div>
+                    <div class="forecast-temps">
+                        <span class="forecast-high">${day.temp_max}°</span>
+                        <span style="color:#ccc"> / </span>
+                        <span class="forecast-low">${day.temp_min}°</span>
+                    </div>
+                `;
+                cards.appendChild(card);
+            });
+            document.getElementById('forecastSection').style.display = 'block';
+        }
+
+        function loadForecast(city) {
+            fetch(`/api/weather/get_forecast/?city=${encodeURIComponent(city)}`)
+                .then(response => response.json())
+                .then(data => {
+                    if (Array.isArray(data)) displayForecast(data);
+                })
+                .catch(error => console.error('Forecast error:', error));
+        }
+
         function displayWeather(data) {
             document.getElementById('cityName').textContent = data.city;
             document.getElementById('country').textContent = data.country || 'Unknown';
@@ -397,6 +510,7 @@
             document.getElementById('timestamp').textContent = formatDate(data.timestamp);
 
             document.getElementById('weatherInfo').classList.add('active');
+            loadForecast(data.city);
             loadHistory();
         }
 
@@ -410,6 +524,7 @@
 
             showLoading(true);
             document.getElementById('weatherInfo').classList.remove('active');
+            document.getElementById('forecastSection').style.display = 'none';
 
             fetch(`/api/weather/get_weather/?city=${encodeURIComponent(city)}`)
                 .then(response => {
