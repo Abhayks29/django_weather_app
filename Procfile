@@ -1,2 +1,1 @@
-web: gunicorn weatherproject.wsgi --log-file -
-release: python manage.py migrate && python manage.py collectstatic --noinput
+web: python manage.py migrate && python manage.py collectstatic --noinput && gunicorn weatherproject.wsgi --log-file -
